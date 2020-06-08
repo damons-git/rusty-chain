@@ -1,6 +1,7 @@
 mod tx_struct;
 mod block_struct;
+mod wallets;
 
 fn main() {
-    println!("Hello, world!");
+    wallets::create_wallet();
 }
