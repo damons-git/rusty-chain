@@ -1,5 +1,6 @@
 use std::process::Command;
 use std::fs::{File, write, create_dir};
+use std::io::{Error, ErrorKind};
 
 // Create a PEM formatted RSA pub-priv key pair
 // using openssl genpkey
@@ -27,17 +28,19 @@ pub fn create_wallet() {
 // Save the wallet to the file system.
 fn save_wallet(file_name: &str, data: &str) -> bool {
     match create_dir("wallet/") {
-        Err(why) => println!("{}", why),
+        Err(why) => if Error::last_os_error().kind() != ErrorKind::AlreadyExists {
+                panic!("Failed to create wallet directory.");
+            },
         Ok(_) => ()
     };
 
     let mut file = match File::create(file_name) {
-        Err(why) => panic!("Couldn't create wallet file: {}", why),
+        Err(why) => panic!("Failed to create wallet file: {}", why),
         Ok(file) => file
     };
 
     match write(file_name, data.as_bytes()) {
-        Err(why) => panic!("Couldn't write to created wallet file: {}", why),
+        Err(why) => panic!("Failed to write to created wallet file: {}", why),
         Ok(_) => ()
     };
 
