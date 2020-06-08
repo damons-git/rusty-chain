@@ -4,4 +4,5 @@ mod wallets;
 
 fn main() {
     wallets::create_wallet();
+    wallets::load_wallet();
 }
