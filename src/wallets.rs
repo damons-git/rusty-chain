@@ -7,6 +7,19 @@ use std::io::{Error, ErrorKind};
 use ring::{rand, signature};
 
 
+pub struct Wallet {
+    // id: Vec<u8>,
+    pub public_key: signature::UnparsedPublicKey<Vec<u8>>,
+    pub private_key: signature::RsaKeyPair
+}
+
+enum SignatureState {
+    SignatureInvalid,
+    SignatureValid
+}
+
+
+// Create a new wallet for use with rustychain.
 pub fn create_wallet() -> () {
     let key_data: Vec<u8> = create_keyfile();
     save_keyfile("wallet/priv.der", &key_data);
@@ -37,7 +50,7 @@ pub fn create_keyfile() -> Vec<u8> {
     return key_data;
 }
 
-// Save the wallet to the file system.
+// Save the DER keypair to the file system.
 fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
     match create_dir("wallet/") {
         Err(why) => if Error::last_os_error().kind() != ErrorKind::AlreadyExists {
@@ -47,12 +60,12 @@ fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
     };
 
     match File::create(file_name) {
-        Err(why) => panic!("Failed to create wallet file: {}", why),
+        Err(why) => panic!("Failed to create key file file: {}", why),
         Ok(file) => file
     };
 
     match write(file_name, data) {
-        Err(why) => panic!("Failed to write to created wallet file: {}", why),
+        Err(why) => panic!("Failed to write to created key file: {}", why),
         Ok(_) => ()
     };
 
@@ -60,7 +73,7 @@ fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
 }
 
 // Load a key file stored on disk into memory.
-pub fn load_wallet() -> () {
+pub fn load_wallet() -> Wallet {
     let priv_der = match read("wallet/priv.der") {
         Err(why) => panic!("Failed to read the contents of the key file: {}", why),
         Ok(contents) => contents
@@ -86,21 +99,44 @@ pub fn load_wallet() -> () {
 
     let pub_key = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, pub_der);
 
-    let msg: &[u8] = b"abc";
+    return Wallet {
+        public_key: pub_key,
+        private_key: key_pair
+    };
+}
+
+// Produces a signature for for arbitrary binary data using the
+// given wallet.
+pub fn sign_binary_data(wallet: &Wallet, data: &Vec<u8>) -> Vec<u8> {
+    let data_bin: &[u8] = &data;
+    let private = &wallet.private_key;
     let rng = rand::SystemRandom::new();
-    let mut sig = vec![0; key_pair.public_modulus_len()];
-    match key_pair.sign(&signature::RSA_PKCS1_SHA256, &rng, msg, &mut sig) {
+    let mut data_signature = vec![0; private.public_modulus_len()];
+
+    match private.sign(&signature::RSA_PKCS1_SHA256, &rng, data_bin, &mut data_signature) {
         Err(why) => println!("{}", why),
         Ok(_) => ()
     };
 
-    println!("{:?}", sig);
-    // sig[0] = 0;
-    let x = match pub_key.verify(&msg, &sig) {
-        Err(why) => println!("Why: {}", why),
-        Ok(res) => res
-    };
+    return data_signature;
 }
+
+// Verifies the signature of the given data was signed by
+// the private key related to the public key provided.
+pub fn verify_binary_data(public_key: &signature::UnparsedPublicKey<Vec<u8>>, data: &Vec<u8>, signature: &Vec<u8>) -> bool {
+    let verification_res = public_key.verify(&data, &signature)
+        .map(|_| SignatureState::SignatureValid)
+        .map_err(|_| SignatureState::SignatureInvalid);
+
+    let signature_valid = match verification_res {
+        Err(_) => false,
+        Ok(_) => true
+    };
+
+    return signature_valid;
+}
+
+
 
 #[cfg(test)]
 mod test {
