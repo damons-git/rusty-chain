@@ -1,5 +1,4 @@
 extern crate ring;
-extern crate untrusted;
 
 use crate::env::{KEY_ALGO, KEY_SIZE, KEY_PUB_EXP};
 use std::process::Command;
@@ -145,15 +144,14 @@ mod test {
     use super::*;
 
     #[test]
-    // Lengths (separators, are either a single bye for small num (under 128), multiple bytes for larger.
     fn create_keyfile_test() {
         let keyfile_der = create_keyfile();
         let keyfile_len_raw = keyfile_der.len() as u16;
         let slice = &keyfile_der[2..4];
         let keyfile_len_stated = ((slice[0] as u16) << 8) | slice[1] as u16 + 0x04;
 
-        assert!(&keyfile_der[0..2] == [48, 130]);           // Opening val to denote DER sequence 0x3082.
-        assert_eq!(keyfile_len_raw, keyfile_len_stated);    // Compare raw length to that stated in DER bytes 3 and 4 (N.B. +4 for sequence bytes).
+        assert!(&keyfile_der[0..2] == [48, 130]);           // Ensure data is ASN.1 DER sequence (0x3082).
+        assert_eq!(keyfile_len_raw, keyfile_len_stated);    // Compare raw length to that stated keyfile bytes 3/4 (N.B. +4 for sequence bytes).
     }
 
 }

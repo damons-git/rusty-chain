@@ -1,3 +1,8 @@
+extern crate ring;
+extern crate rand;
+
+use rand::{RngCore};
+
 /**
  * Data Transaction:
  * A transaction struct that allows
@@ -5,7 +10,7 @@
  */
 struct DataTx {
     version: u8,                // u8 field for tx version
-    id: u32,                    // 32-bit field for unique transaction id
+    id: [u8; 4],                // 32-bit field for unique transaction id
     tx_type: u8,                // 8-bit transaction type field
     owner: Vec<char>,           // 32-byte (256-bit) creator wallet reference
     data: Vec<char>,            // 256-byte arbitrary data field
@@ -21,7 +26,7 @@ struct DataTx {
  */
 struct FinanceTx {
     version: u8,                // u8 field for tx version
-    id: u32,                    // 32-bit field for unique transaction id
+    id: [u8; 4],                // 32-bit field for unique transaction id
     tx_type: u8,                // 8-bit transaction type field
     owner: Vec<char>,           // 32-byte (256-bit) creator wallet reference
     receiver: Vec<char>,        // 32-byte (256-bit) receiver wallet reference
@@ -38,7 +43,7 @@ struct FinanceTx {
  */
 struct ContractTx {
     version: u8,                // u8 field for tx version
-    id: u32,                    // 32-bit field for unique transaction id
+    id: [u8; 4],                // 32-bit field for unique transaction id
     tx_type: u8,                // 8-bit transaction type field
     state: u8,                  // 8-bit contract state type
     proposer: Vec<char>,        // 32-byte (256-bit) recevier wallet reference
@@ -80,6 +85,15 @@ fn resolve_contract_state(state: ContractState) -> u8 {
         ContractState::Seconded => 0x01,
         ContractState::Accepted => 0x02
     }
+}
+
+// Generate and return a random transaction id.
+pub fn generate_rand_id() -> [u8; 4] {
+    let mut rng = rand::thread_rng();
+    let mut id: [u8; 4] = [0; 4];
+    rng.fill_bytes(&mut id);
+
+    return id;
 }
 
 
@@ -133,7 +147,7 @@ mod test {
     #[test]
     fn construct_data_tx() {
         let version: u8 = 0x01;
-        let id: u32 = 0x00000001;
+        let id: [u8; 4] = [0, 0, 0, 0];
         let tx_type: u8 = resolve_tx_type(TxType::Data);
         let owner: Vec<char> = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069".chars().collect();
         let data: Vec<char> = "Hello World!".chars().collect();
@@ -162,7 +176,7 @@ mod test {
     #[test]
     fn construct_finance_tx() {
         let version: u8 = 0x01;
-        let id: u32 = 0x0001;
+        let id: [u8; 4] = [0, 0, 0, 0];
         let tx_type: u8 = resolve_tx_type(TxType::Finance);
         let owner: Vec<char> = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069".chars().collect();
         let receiver: Vec<char> = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069".chars().collect();
@@ -194,7 +208,7 @@ mod test {
     #[test]
     fn construct_contract_tx() {
         let version: u8 = 0x01;
-        let id: u32 = 0x0001;
+        let id: [u8; 4] = [0, 0, 0, 0];
         let tx_type: u8 = resolve_tx_type(TxType::Contract);
         let state: u8 = resolve_contract_state(ContractState::Proposed);
         let proposer: Vec<char> = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069".chars().collect();
