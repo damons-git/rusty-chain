@@ -18,11 +18,10 @@ enum SignatureState {
     SignatureValid
 }
 
-
 // Create a new wallet for use with rustychain.
 pub fn create_wallet() -> () {
     let key_data: Vec<u8> = create_keyfile();
-    save_keyfile("wallet/priv.der", &key_data);
+    save_keyfile("wallet/keyfile.der", &key_data);
 }
 
 // Create a DER (Distinguished Encoding Rules) formatted
@@ -98,6 +97,7 @@ pub fn load_wallet() -> Wallet {
         Ok(res) => res
     };
 
+    // N.B. 270 byte ASN.1 Public Key Encoding defined by RSA foundation
     let pub_key = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, pub_der);
 
     return Wallet {

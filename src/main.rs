@@ -1,7 +1,9 @@
+mod env;
 mod tx_struct;
 mod block_struct;
+mod tx;
 mod wallets;
-mod env;
+
 
 fn main() {
     wallets::create_wallet();
