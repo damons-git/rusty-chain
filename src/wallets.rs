@@ -1,6 +1,7 @@
 extern crate ring;
 extern crate untrusted;
 
+use crate::env::{KEY_ALGO, KEY_SIZE, KEY_PUB_EXP};
 use std::process::Command;
 use std::fs::{File, write, create_dir, read};
 use std::io::{Error, ErrorKind};
@@ -28,14 +29,15 @@ pub fn create_wallet() -> () {
 // Create a DER (Distinguished Encoding Rules) formatted
 // RSA public-private key file using openssl genpkey
 pub fn create_keyfile() -> Vec<u8> {
+
     let output = Command::new("openssl")
         .arg("genpkey")
         .arg("-algorithm")
-        .arg("RSA")
+        .arg(format!("{}", KEY_ALGO))
         .arg("-pkeyopt")
-        .arg("rsa_keygen_bits:2048")
+        .arg(format!("rsa_keygen_bits:{}", KEY_SIZE))
         .arg("-pkeyopt")
-        .arg("rsa_keygen_pubexp:65537")
+        .arg(format!("rsa_keygen_pubexp:{}", KEY_PUB_EXP))
         .arg("-outform")
         .arg("DER")
         .output()
@@ -47,9 +49,6 @@ pub fn create_keyfile() -> Vec<u8> {
         true => ()
     }
 
-    println!("{:x?}", key_data);
-    println!("{:?}", key_data.len());
-    println!("{:?}", &key_data[0..2]);
     return key_data;
 }
 
@@ -146,6 +145,7 @@ mod test {
     use super::*;
 
     #[test]
+    // Lengths (separators, are either a single bye for small num (under 128), multiple bytes for larger.
     fn create_keyfile_test() {
         let keyfile_der = create_keyfile();
         let keyfile_len_raw = keyfile_der.len() as u16;
