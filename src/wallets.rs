@@ -74,7 +74,7 @@ fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
 
 // Load a key file stored on disk into memory.
 pub fn load_wallet() -> Wallet {
-    let priv_der = match read("wallet/priv.der") {
+    let priv_der = match read("wallet/keyfile.der") {
         Err(why) => panic!("Failed to read the contents of the key file: {}", why),
         Ok(contents) => contents
     };
@@ -82,7 +82,7 @@ pub fn load_wallet() -> Wallet {
     let output = Command::new("openssl")
         .arg("rsa")
         .arg("-in")
-        .arg("wallet/priv.der")
+        .arg("wallet/keyfile.der")
         .arg("-inform")
         .arg("DER")
         .arg("-RSAPublicKey_out")

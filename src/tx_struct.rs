@@ -23,7 +23,7 @@ pub struct DataTx {
     pub tx_type: u8,                // 8-bit transaction type field
     pub owner: Vec<u8>,             // Public key of wallet making transaction (270 bytes - ASN.1 Public Key Format)
     pub data: Vec<u8>,              // 256-byte arbitrary data field
-    pub reward: u32,                // u32 amount of tokens for mining reward (optional)
+    pub reward: [u8; 4],            // u32 amount of tokens for mining reward (optional)
     pub signature: [u8; 256]        // 256-byte owner RSA signature field
 }
 
@@ -77,7 +77,7 @@ mod test {
         let tx_type: u8 = TxType::Data as u8;
         let owner: Vec<u8> = vec![0, 0, 0, 0];
         let data: Vec<u8> = String::from("Hello World!").into_bytes();
-        let reward: u32 = 0x00000010;
+        let reward: [u8; 4] = [0, 0, 0, 1];
         let signature: [u8; 256] = [0x00; 256];
 
         let tx: DataTx = DataTx {
