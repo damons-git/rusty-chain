@@ -2,6 +2,7 @@ extern crate ring;
 extern crate rand;
 
 use crate::tx_struct::{DataTx, FinanceTx, ContractTx, TxType};
+use crate::wallets::{create_keyfile, load_keyfile};
 use rand::{Rng, RngCore};
 use rand::distributions::{Alphanumeric};
 

@@ -1,6 +1,7 @@
 extern crate ring;
 
 use crate::env::{KEY_ALGO, KEY_SIZE, KEY_PUB_EXP};
+use crate::key_parser;
 use std::process::Command;
 use std::fs::{File, write, create_dir, read};
 use std::io::{Error, ErrorKind};
@@ -8,7 +9,6 @@ use ring::{rand, signature};
 
 
 pub struct Wallet {
-    // id: Vec<u8>,
     pub public_key: signature::UnparsedPublicKey<Vec<u8>>,
     pub private_key: signature::RsaKeyPair
 }
@@ -16,12 +16,6 @@ pub struct Wallet {
 enum SignatureState {
     SignatureInvalid,
     SignatureValid
-}
-
-// Create a new wallet for use with rustychain.
-pub fn create_wallet() -> () {
-    let key_data: Vec<u8> = create_keyfile();
-    save_keyfile("wallet/keyfile.der", &key_data);
 }
 
 // Create a DER (Distinguished Encoding Rules) formatted
@@ -51,7 +45,7 @@ pub fn create_keyfile() -> Vec<u8> {
 }
 
 // Save the DER keypair to the file system.
-fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
+pub fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
     match create_dir("wallet/") {
         Err(why) => if Error::last_os_error().kind() != ErrorKind::AlreadyExists {
                 panic!("Failed to create wallet directory: {}", why);
@@ -72,32 +66,27 @@ fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
     return true;
 }
 
-// Load a key file stored on disk into memory.
-pub fn load_wallet() -> Wallet {
-    let priv_der = match read("wallet/keyfile.der") {
+// Load a key file stored on disk.
+pub fn load_keyfile_from_disk() -> Wallet {
+
+    let key_data = match read("wallet/keyfile.der") {
         Err(why) => panic!("Failed to read the contents of the key file: {}", why),
         Ok(contents) => contents
     };
 
-    let output = Command::new("openssl")
-        .arg("rsa")
-        .arg("-in")
-        .arg("wallet/keyfile.der")
-        .arg("-inform")
-        .arg("DER")
-        .arg("-RSAPublicKey_out")
-        .arg("-outform")
-        .arg("DER")
-        .output()
-        .expect("Failed to execute process");
-    let pub_der = if output.status.success() { output.stdout } else { output.stderr };
+    return load_keyfile(key_data);
+}
 
-    let key_pair = match signature::RsaKeyPair::from_der(&priv_der) {
+// Load a raw binary key file and return as a wallet struct.
+pub fn load_keyfile(key_data: Vec<u8>) -> Wallet {
+    // Note: ASN.1 DER Encoded RSA key pair, defined by RSA foundation.
+    let key_pair = match signature::RsaKeyPair::from_der(&key_data) {
         Err(why) => panic!("Failed to parse key file: {}", why),
         Ok(res) => res
     };
 
-    // N.B. 270 byte ASN.1 Public Key Encoding defined by RSA foundation
+    // Note: 270 byte ASN.1 Public Key Encoding, defined by RSA foundation.
+    let pub_der = key_parser::get_public_der(&key_data);
     let pub_key = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, pub_der);
 
     return Wallet {
