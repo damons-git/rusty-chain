@@ -9,8 +9,8 @@ use ring::{rand, signature};
 
 
 pub struct Wallet {
-    pub public_key: signature::UnparsedPublicKey<Vec<u8>>,
-    pub private_key: signature::RsaKeyPair
+    pub public_key: Vec<u8>,
+    pub private_key: Vec<u8>
 }
 
 enum SignatureState {
@@ -21,7 +21,6 @@ enum SignatureState {
 // Create a DER (Distinguished Encoding Rules) formatted
 // RSA public-private key file using openssl genpkey
 pub fn create_keyfile() -> Vec<u8> {
-
     let output = Command::new("openssl")
         .arg("genpkey")
         .arg("-algorithm")
@@ -52,12 +51,10 @@ pub fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
             },
         Ok(_) => ()
     };
-
     match File::create(file_name) {
         Err(why) => panic!("Failed to create key file file: {}", why),
         Ok(file) => file
     };
-
     match write(file_name, data) {
         Err(why) => panic!("Failed to write to created key file: {}", why),
         Ok(_) => ()
@@ -68,7 +65,6 @@ pub fn save_keyfile(file_name: &str, data: &Vec<u8>) -> bool {
 
 // Load a key file stored on disk.
 pub fn load_keyfile_from_disk() -> Wallet {
-
     let key_data = match read("wallet/keyfile.der") {
         Err(why) => panic!("Failed to read the contents of the key file: {}", why),
         Ok(contents) => contents
@@ -79,27 +75,28 @@ pub fn load_keyfile_from_disk() -> Wallet {
 
 // Load a raw binary key file and return as a wallet struct.
 pub fn load_keyfile(key_data: Vec<u8>) -> Wallet {
-    // Note: ASN.1 DER Encoded RSA key pair, defined by RSA foundation.
-    let key_pair = match signature::RsaKeyPair::from_der(&key_data) {
-        Err(why) => panic!("Failed to parse key file: {}", why),
-        Ok(res) => res
-    };
-
-    // Note: 270 byte ASN.1 Public Key Encoding, defined by RSA foundation.
     let pub_der = key_parser::get_public_der(&key_data);
-    let pub_key = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, pub_der);
+    let priv_der = key_data.clone();
 
     return Wallet {
-        public_key: pub_key,
-        private_key: key_pair
+        public_key: pub_der,
+        private_key: priv_der
     };
 }
 
 // Produces a signature for for arbitrary binary data using the
 // given wallet.
 pub fn sign_binary_data(wallet: &Wallet, data: &Vec<u8>) -> Vec<u8> {
+    // Note: ASN.1 DER Encoded RSA key pair, defined by RSA foundation.
+    let private = match signature::RsaKeyPair::from_der(&wallet.private_key) {
+        Err(why) => panic!("Failed to parse key file: {}", why),
+        Ok(res) => res
+    };
+
+    // Note: 270 byte ASN.1 Public Key Encoding, defined by RSA foundation.
+    let public = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, &wallet.public_key);
+
     let data_bin: &[u8] = &data;
-    let private = &wallet.private_key;
     let rng = rand::SystemRandom::new();
     let mut data_signature = vec![0; private.public_modulus_len()];
 
@@ -113,7 +110,8 @@ pub fn sign_binary_data(wallet: &Wallet, data: &Vec<u8>) -> Vec<u8> {
 
 // Verifies the signature of the given data was signed by
 // the private key related to the public key provided.
-pub fn verify_binary_data(public_key: &signature::UnparsedPublicKey<Vec<u8>>, data: &Vec<u8>, signature: &Vec<u8>) -> bool {
+pub fn verify_binary_data(public_der: &Vec<u8>, data: &Vec<u8>, signature: &Vec<u8>) -> bool {
+    let public_key = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, public_der);
     let verification_res = public_key.verify(&data, &signature)
         .map(|_| SignatureState::SignatureValid)
         .map_err(|_| SignatureState::SignatureInvalid);
