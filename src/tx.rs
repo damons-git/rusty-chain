@@ -34,7 +34,7 @@ pub fn generate_rand_data_tx() -> DataTx {
         hash: hash,
         signature: sig
     };
-    if DEBUG { println!("> Generated Random Data Tx: {}", tx.to_string())};
+    if DEBUG { println!("> Generated Random Data Tx, data: {:x?}", tx.data)};
 
     return tx
 }

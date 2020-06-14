@@ -354,4 +354,25 @@ mod test {
 
         assert!(Wallet::verify(&wallet.public_key, &binary, &tx.signature));
     }
+
+    #[test]
+    fn sign_verify_tx_from_owner_field() {
+        let wallet = Wallet::new();
+        let mut tx: DataTx = DataTx {
+            version: 0x00,
+            tx_type: TxType::Data,
+            owner: wallet.public_key.clone(),
+            data: vec![1, 2, 3, 4],
+            reward: [0, 0, 0, 1],
+            previous_hash: [0; 32],
+            hash: [0; 32],
+            signature: [0; 256]
+        };
+        tx.generate_hash();
+        tx.generate_signature(&wallet);
+
+        let binary = tx.to_signable_bin();
+        let public_key = tx.owner.clone();
+        assert!(Wallet::verify(&public_key, &binary, &tx.signature));
+    }
 }
