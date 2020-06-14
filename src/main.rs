@@ -1,20 +1,20 @@
 mod env;
+mod util;
 mod tx_struct;
 mod block_struct;
 mod tx;
 mod wallets;
 mod key_parser;
 
+use crate::tx_struct::{DataTx, FinancialTx, TxType, Tx};
+
 
 fn main() {
-    // println!("{:x?}", &bin);
-
-    let tx = tx::generate_rand_data_tx();
-    let bin = tx::tx_to_binary(tx);
+    let mut tx = tx::generate_rand_data_tx();
     let key_data = wallets::create_keyfile();
-    wallets::save_keyfile("wallet/keypair.der", &key_data);
     let wallet = wallets::load_keyfile(key_data);
-    let sig: Vec<u8> = wallets::sign_binary_data(&wallet, &bin);
-    let valid: bool = wallets::verify_binary_data(&wallet.public_key, &bin, &sig);
-    println!("Signed/Verified: {}", valid);
+    tx.generate_hash();
+    tx.generate_signature(&wallet);
+    let valid: bool = wallets::verify(&wallet.public_key, &tx.to_signable_bin(), &tx.signature);
+    println!("Signed & Verified: {}", valid);
 }

@@ -86,7 +86,7 @@ pub fn load_keyfile(key_data: Vec<u8>) -> Wallet {
 
 // Produces a signature for for arbitrary binary data using the
 // given wallet.
-pub fn sign_binary_data(wallet: &Wallet, data: &Vec<u8>) -> Vec<u8> {
+pub fn sign(wallet: &Wallet, data: &Vec<u8>) -> [u8; 256] {
     // Note: ASN.1 DER Encoded RSA key pair, defined by RSA foundation.
     let private = match signature::RsaKeyPair::from_der(&wallet.private_key) {
         Err(why) => panic!("Failed to parse key file: {}", why),
@@ -98,21 +98,23 @@ pub fn sign_binary_data(wallet: &Wallet, data: &Vec<u8>) -> Vec<u8> {
 
     let data_bin: &[u8] = &data;
     let rng = rand::SystemRandom::new();
-    let mut data_signature = vec![0; private.public_modulus_len()];
+    let mut sig_vec = vec![0; private.public_modulus_len()];
 
-    match private.sign(&signature::RSA_PKCS1_SHA256, &rng, data_bin, &mut data_signature) {
+    match private.sign(&signature::RSA_PKCS1_SHA256, &rng, data_bin, &mut sig_vec) {
         Err(why) => println!("{}", why),
         Ok(_) => ()
     };
 
-    return data_signature;
+    let mut sig: [u8; 256] = [0; 256];
+    sig.copy_from_slice(&sig_vec[0..256]);
+    return sig;
 }
 
 // Verifies the signature of the given data was signed by
 // the private key related to the public key provided.
-pub fn verify_binary_data(public_der: &Vec<u8>, data: &Vec<u8>, signature: &Vec<u8>) -> bool {
+pub fn verify(public_der: &Vec<u8>, data: &Vec<u8>, signature: &[u8; 256]) -> bool {
     let public_key = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, public_der);
-    let verification_res = public_key.verify(&data, &signature)
+    let verification_res = public_key.verify(&data, signature)
         .map(|_| SignatureState::SignatureValid)
         .map_err(|_| SignatureState::SignatureInvalid);
 
