@@ -2,7 +2,7 @@ use crate::util::{type_of, hash};
 use crate::wallets::{Wallet, sign};
 
 // Enum containing transaction type(s).
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TxType {
     Data = 0x00,
     Financial = 0x01
@@ -187,7 +187,7 @@ mod test {
     #[test]
     fn construct_data_tx() {
         let version: u8 = 0x01;
-        let tx_type: u8 = TxType::Data as u8;
+        let tx_type: TxType = TxType::Data;
         let owner: Vec<u8> = vec![0];
         let data: Vec<u8> = String::from("Hello World!").into_bytes();
         let reward: [u8; 4] = [0, 0, 0, 1];
@@ -219,7 +219,7 @@ mod test {
     #[test]
     fn construct_financial_tx() {
         let version: u8 = 0x01;
-        let tx_type: u8 = TxType::Data as u8;
+        let tx_type: TxType = TxType::Financial;
         let owner: Vec<u8> = vec![0];
         let receiver: Vec<u8> = vec![0];
         let quantity: [u8; 4] = [0, 0, 0, 1];
@@ -255,7 +255,7 @@ mod test {
     fn print_data_tx() {
         let tx: DataTx = DataTx {
             version: 0x00,
-            tx_type: 0x00,
+            tx_type: TxType::Data,
             owner: vec![0; 32],
             data: vec![],
             reward: [0, 0, 0, 0],
@@ -271,7 +271,7 @@ mod test {
     fn print_financial_tx() {
         let tx: FinancialTx = FinancialTx {
             version: 0x00,
-            tx_type: 0x00,
+            tx_type: TxType::Financial,
             owner: vec![0; 32],
             receiver: vec![0; 32],
             quantity: [0, 0, 0, 0],
