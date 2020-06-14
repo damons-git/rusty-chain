@@ -3,7 +3,7 @@ extern crate rand;
 extern crate sha2;
 
 use crate::tx_struct::{DataTx, FinancialTx, TxType};
-use crate::wallets::{create_keyfile, load_keyfile};
+use crate::wallet_struct::{Wallet};
 use crate::env::DEBUG;
 use rand::{Rng};
 use rand::distributions::{Alphanumeric};
@@ -11,7 +11,7 @@ use rand::distributions::{Alphanumeric};
 
 // Generate a random unsigned data transaction.
 pub fn generate_rand_data_tx() -> DataTx {
-    let wallet = load_keyfile(create_keyfile());
+    let wallet = Wallet::new();
     let version = 0x01;
     let tx_type = TxType::Data;
     let owner = wallet.public_key;

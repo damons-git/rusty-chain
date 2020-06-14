@@ -1,5 +1,5 @@
 use crate::util::{type_of, hash};
-use crate::wallets::{Wallet, create_keyfile, load_keyfile, sign, verify};
+use crate::wallet_struct::{Wallet};
 
 // Enum containing transaction type(s).
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -119,7 +119,7 @@ impl Tx for DataTx {
     // Generate and set signature of transaction.
     fn generate_signature(&mut self, wallet: &Wallet) -> () {
         let bin: Vec<u8> = self.to_signable_bin();
-        let sig: [u8; 256] = sign(&wallet, &bin);
+        let sig: [u8; 256] = wallet.sign(&bin);
         self.signature = sig;
     }
 }
@@ -227,7 +227,7 @@ impl Tx for FinancialTx {
     // Generate and set signature of transaction.
     fn generate_signature(&mut self, wallet: &Wallet) -> () {
         let bin: Vec<u8> = self.to_signable_bin();
-        let sig: [u8; 256] = sign(&wallet, &bin);
+        let sig: [u8; 256] = wallet.sign(&bin);
         self.signature = sig;
     }
 }
@@ -338,20 +338,20 @@ mod test {
     #[test]
     fn sign_verify_data_tx() {
         let mut tx: DataTx = DataTx::new();
-        let wallet = load_keyfile(create_keyfile());
+        let wallet = Wallet::new();
         let binary = tx.to_signable_bin();
         tx.generate_signature(&wallet);
 
-        assert!(verify(&wallet.public_key, &binary, &tx.signature));
+        assert!(Wallet::verify(&wallet.public_key, &binary, &tx.signature));
     }
 
     #[test]
     fn sign_verify_financial_tx() {
         let mut tx: FinancialTx = FinancialTx::new();
-        let wallet = load_keyfile(create_keyfile());
+        let wallet = Wallet::new();
         let binary = tx.to_signable_bin();
         tx.generate_signature(&wallet);
 
-        assert!(verify(&wallet.public_key, &binary, &tx.signature));
+        assert!(Wallet::verify(&wallet.public_key, &binary, &tx.signature));
     }
 }
