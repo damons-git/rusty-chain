@@ -1,5 +1,5 @@
 use crate::util::{type_of, hash};
-use crate::wallets::{Wallet, sign};
+use crate::wallets::{Wallet, create_keyfile, load_keyfile, sign, verify};
 
 // Enum containing transaction type(s).
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -333,5 +333,25 @@ mod test {
         let expected = [45, 101, 99, 194, 67, 155, 231, 68, 251, 192, 152, 146, 214, 0, 139, 246, 169, 98, 110, 198, 96, 181, 206, 117, 124, 213, 61, 85, 41, 238, 117, 250];
 
         assert_eq!(tx.hash, expected);
+    }
+
+    #[test]
+    fn sign_verify_data_tx() {
+        let mut tx: DataTx = DataTx::new();
+        let wallet = load_keyfile(create_keyfile());
+        let binary = tx.to_signable_bin();
+        tx.generate_signature(&wallet);
+
+        assert!(verify(&wallet.public_key, &binary, &tx.signature));
+    }
+
+    #[test]
+    fn sign_verify_financial_tx() {
+        let mut tx: FinancialTx = FinancialTx::new();
+        let wallet = load_keyfile(create_keyfile());
+        let binary = tx.to_signable_bin();
+        tx.generate_signature(&wallet);
+
+        assert!(verify(&wallet.public_key, &binary, &tx.signature));
     }
 }
