@@ -1,6 +1,13 @@
+extern crate byteorder;
+extern crate sha2;
+extern crate ring;
+
 use std::any::type_name;
 use rand::{RngCore};
 use sha2::{Sha256, Digest};
+use std::time::{SystemTime, Duration, UNIX_EPOCH};
+use std::mem::size_of_val;
+use byteorder::ByteOrder;
 
 
 // Return the type of a variable as a string.
@@ -26,4 +33,18 @@ pub fn hash(binary: &Vec<u8>) -> [u8; 32] {
     let mut hash: [u8; 32] = Default::default();
     hash.copy_from_slice(&result[0..32]);
     return hash;
+}
+
+// Return 64-bit UNIX timestamp formatted as a u8 array.
+pub fn get_timestamp() -> [u8; 8] {
+    let duration = match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Err(_) => panic!("Unable to fetch UNIX timestamp."),
+        Ok(t) => t
+    };
+
+    let timestamp: u64 = duration.as_secs();
+    let mut buf = [0; 8];
+    byteorder::BigEndian::write_u64(&mut buf, timestamp);
+
+    return buf;
 }
