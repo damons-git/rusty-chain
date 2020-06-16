@@ -10,6 +10,9 @@ pub enum TxType {
 
 // Generalised interface for Tx structs.
 pub trait Tx {
+    // Convert full transaction to bin.
+    fn to_bin(&self) -> Vec<u8>;
+
     // Convert tx to hashable binary.
     fn to_hashable_bin(&self) -> Vec<u8>;
 
@@ -32,6 +35,7 @@ pub struct DataTx {
     pub version: u8,                // u8 field for tx version
     pub tx_type: TxType,            // 8-bit transaction type field represented as TxType enum
     pub owner: Vec<u8>,             // Public key of wallet making transaction (270 bytes - ASN.1 Public Key Format)
+    pub data_len: u8,               // Length of data field in bytes (0-255)
     pub data: Vec<u8>,              // 256-byte arbitrary data field
     pub reward: [u8; 4],            // u32 amount of tokens for mining reward (optional)
     pub previous_hash: [u8; 32],    // 32-byte field for previous tx hash from owner wallet
@@ -45,6 +49,7 @@ impl DataTx {
             version: 0x00,
             tx_type: TxType::Data,
             owner: vec![0; 32],
+            data_len: 0x00,
             data: vec![],
             reward: [0, 0, 0, 0],
             previous_hash: [0; 32],
@@ -80,6 +85,22 @@ impl ToString for DataTx {
 }
 
 impl Tx for DataTx {
+    // Convert all tx contents to bin.
+    fn to_bin(&self) -> Vec<u8> {
+        let mut binary: Vec<u8> = vec![];
+        binary.push(self.version);
+        binary.push(self.tx_type as u8);
+        binary.extend_from_slice(&self.owner.clone());
+        binary.push(self.data_len);
+        binary.extend_from_slice(&self.data.clone());
+        binary.extend_from_slice(&self.reward.clone());
+        binary.extend_from_slice(&self.previous_hash.clone());
+        binary.extend_from_slice(&self.hash.clone());
+        binary.extend_from_slice(&self.signature.clone());
+
+        return binary;
+    }
+
     // Convert transaction fields into a
     // binary used for generating hash.
     fn to_hashable_bin(&self) -> Vec<u8> {
@@ -87,6 +108,7 @@ impl Tx for DataTx {
         binary.push(self.version);
         binary.push(self.tx_type as u8);
         binary.extend_from_slice(&self.owner.clone());
+        binary.push(self.data_len);
         binary.extend_from_slice(&self.data.clone());
         binary.extend_from_slice(&self.reward.clone());
         binary.extend_from_slice(&self.previous_hash.clone());
@@ -101,6 +123,7 @@ impl Tx for DataTx {
         binary.push(self.version);
         binary.push(self.tx_type as u8);
         binary.extend_from_slice(&self.owner.clone());
+        binary.push(self.data_len);
         binary.extend_from_slice(&self.data.clone());
         binary.extend_from_slice(&self.reward.clone());
         binary.extend_from_slice(&self.previous_hash.clone());
@@ -186,6 +209,22 @@ impl ToString for FinancialTx {
 }
 
 impl Tx for FinancialTx {
+    // Convert all tx contents to bin.
+    fn to_bin(&self) -> Vec<u8> {
+        let mut binary: Vec<u8> = vec![];
+        binary.push(self.version);
+        binary.push(self.tx_type as u8);
+        binary.extend_from_slice(&self.owner.clone());
+        binary.extend_from_slice(&self.receiver.clone());
+        binary.extend_from_slice(&self.quantity.clone());
+        binary.extend_from_slice(&self.reward.clone());
+        binary.extend_from_slice(&self.previous_hash.clone());
+        binary.extend_from_slice(&self.hash.clone());
+        binary.extend_from_slice(&self.signature.clone());
+
+        return binary;
+    }
+
     // Convert transaction fields into a
     // binary used for generating hash.
     fn to_hashable_bin(&self) -> Vec<u8> {
@@ -253,6 +292,7 @@ mod test {
             version: version,
             tx_type: tx_type,
             owner: owner.clone(),
+            data_len: data.len() as u8,
             data: data.clone(),
             reward: reward,
             previous_hash: previous_hash,
@@ -263,6 +303,7 @@ mod test {
         assert_eq!(tx.version, version);
         assert_eq!(tx.tx_type, tx_type);
         assert_eq!(tx.owner, owner);
+        assert_eq!(tx.data_len, data.len() as u8);
         assert_eq!(tx.data, data);
         assert_eq!(tx.reward, reward);
         assert_eq!(tx.previous_hash, previous_hash);
@@ -321,7 +362,7 @@ mod test {
     fn hash_data_tx() {
         let mut tx: DataTx = DataTx::new();
         tx.generate_hash();
-        let expected = [130, 252, 253, 82, 21, 23, 93, 169, 230, 92, 167, 196, 251, 146, 122, 31, 176, 230, 31, 9, 213, 73, 135, 195, 104, 232, 225, 110, 189, 156, 41, 105];
+        let expected = [8, 5, 220, 220, 66, 202, 71, 171, 220, 61, 143, 225, 31, 142, 12, 122, 16, 134, 2, 2, 47, 113, 171, 52, 150, 72, 207, 221, 48, 167, 90, 166];
 
         assert_eq!(tx.hash, expected);
     }
@@ -362,6 +403,7 @@ mod test {
             version: 0x00,
             tx_type: TxType::Data,
             owner: wallet.public_key.clone(),
+            data_len: 4,
             data: vec![1, 2, 3, 4],
             reward: [0, 0, 0, 1],
             previous_hash: [0; 32],
