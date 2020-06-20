@@ -5,9 +5,9 @@ extern crate ring;
 use std::any::type_name;
 use rand::{RngCore};
 use sha2::{Sha256, Digest};
-use std::time::{SystemTime, Duration, UNIX_EPOCH};
-use std::mem::size_of_val;
+use std::time::{SystemTime, UNIX_EPOCH};
 use byteorder::ByteOrder;
+use std::net::{SocketAddr, IpAddr, Ipv4Addr, Ipv6Addr};
 
 
 // Return the type of a variable as a string.
@@ -47,4 +47,40 @@ pub fn get_timestamp() -> [u8; 8] {
     byteorder::BigEndian::write_u64(&mut buf, timestamp);
 
     return buf;
+}
+
+// Parse a socket address string to a corresponding SocketAddr struct.
+pub fn parse_net_address(ip_str: &str) -> SocketAddr {
+    let segments = ip_str.split(":").collect::<Vec<&str>>();
+
+    if segments.len() == 2 {
+        return parse_ipv4(ip_str);
+    }
+    else {
+        return parse_ipv6(ip_str);
+    }
+}
+
+fn parse_ipv4(addr: &str) -> SocketAddr {
+    let split = addr.split(":").collect::<Vec<&str>>();
+    let port = split[1];
+    let seg_str = split[0].split(".").collect::<Vec<&str>>();
+    let num: Vec<u8> = seg_str.into_iter().map(|x| x.parse::<u8>().unwrap()).collect();
+
+    return SocketAddr::new(
+        IpAddr::V4(Ipv4Addr::new(num[0], num[1], num[2], num[3])),
+        port.parse::<u16>().unwrap()
+    );
+}
+
+fn parse_ipv6(ip_str: &str) -> SocketAddr {
+    let mut seg_str = ip_str.split(":").collect::<Vec<&str>>();
+    let port = seg_str[8].parse::<u16>().unwrap();
+    seg_str.pop();
+    let num: Vec<u16> = seg_str.into_iter().map(|x| u16::from_str_radix(x, 16).unwrap()).collect();
+
+    return SocketAddr::new(
+        IpAddr::V6(Ipv6Addr::new(num[0], num[1], num[2], num[3], num[4], num[5], num[6], num[7])),
+        port as u16
+    );
 }

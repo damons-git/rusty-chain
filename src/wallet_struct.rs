@@ -69,7 +69,7 @@ impl Wallet {
     // Note: Wallet holds ASN.1 DER encoded RSA key pair, defined by RSA foundation.
     pub fn sign(&self, data: &Vec<u8>) -> [u8; 256] {
 
-        let public = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, &self.public_key);
+        let _public = signature::UnparsedPublicKey::new(&signature::RSA_PKCS1_2048_8192_SHA256, &self.public_key);
         let private = match signature::RsaKeyPair::from_der(&self.private_key) {
             Err(why) => panic!("Failed to parse key file: {}", why),
             Ok(res) => res
