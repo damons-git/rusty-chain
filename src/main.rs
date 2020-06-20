@@ -6,16 +6,18 @@ mod tx;
 mod wallet_struct;
 mod key_parser;
 mod wallet;
+mod difficulty;
+mod chain;
+mod miner;
 
-use crate::tx_struct::{DataTx, FinancialTx, TxType, Tx};
-use crate::wallet_struct::{Wallet};
-use crate::wallet::{load_from_disk, save_to_disk};
 
 fn main() {
-    let mut tx = tx::generate_rand_data_tx();
-    let wallet = Wallet::new();
-    tx.generate_hash();
-    tx.generate_signature(&wallet);
-    let valid: bool = Wallet::verify(&wallet.public_key, &tx.to_signable_bin(), &tx.signature);
-    println!("Signed & Verified: {}", valid);
+    // Node entrypoint
+    // TODO: Add command line arg control
+    let mine = true;
+    let txs  = false;
+    let rest = false;
+
+    // Start node service
+    chain::start_server(mine, txs, rest);
 }
