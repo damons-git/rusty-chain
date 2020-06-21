@@ -8,6 +8,8 @@ use sha2::{Sha256, Digest};
 use std::time::{SystemTime, UNIX_EPOCH};
 use byteorder::ByteOrder;
 use std::net::{SocketAddr, IpAddr, Ipv4Addr, Ipv6Addr};
+use chrono::DateTime;
+use chrono::offset::Utc;
 
 
 // Return the type of a variable as a string.
@@ -47,6 +49,14 @@ pub fn get_timestamp() -> [u8; 8] {
     byteorder::BigEndian::write_u64(&mut buf, timestamp);
 
     return buf;
+}
+
+// Return the current formatted date time.
+pub fn get_datetime() -> String {
+    let dt: DateTime<Utc> = SystemTime::now().into();
+    let date_str = dt.format("%T_%d%m%Y");
+
+    return date_str.to_string();
 }
 
 // Parse a socket address string to a corresponding SocketAddr struct.

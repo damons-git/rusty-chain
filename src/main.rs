@@ -9,7 +9,13 @@ mod wallet;
 mod difficulty;
 mod chain;
 mod miner;
+mod log;
 
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref LOGFILE: String = format!("{}-logfile.txt", util::get_datetime());
+}
 
 fn main() {
     // Node entrypoint
@@ -17,7 +23,8 @@ fn main() {
     let mine = true;
     let txs  = false;
     let rest = false;
+    let spawn = true;
 
     // Start node service
-    chain::start_server(mine, txs, rest);
+    chain::start_server(mine, txs, rest, spawn);
 }

@@ -7,6 +7,7 @@ pub const PEERS_LIST: [&str; 3] = [
 ];
 
 pub const DEBUG: bool = true;                       // Flag to output debugging data to stdout
+pub const SAVE_LOG: bool = true;                    // Flag stating if log should be saved to file
 pub const SPAWN_CHAIN: bool = true;                 // Flag to state if node should start network at genesis block
 pub const MINING_NODE: bool = true;                 // Flag to state if node should mine blocks
 pub const MINING_THREADS: u8 = 1;                   // The number of mining threads to be used
@@ -19,4 +20,4 @@ pub const KEY_ALGO: &str = "RSA";                   // Asymmetric encryption key
 pub const KEY_SIZE: u32 = 2048;                     // Key-size in bits
 pub const KEY_PUB_EXP: u32 = 65537;                 // Public exponenent used for key generation
 
-pub const MINER_PROCESS: u8 = 8;                    // Number of mining threads to be used
+pub const MINER_PROCESS: u8 = 1;                    // Number of mining threads to be used
