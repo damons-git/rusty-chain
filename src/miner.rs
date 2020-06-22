@@ -9,7 +9,7 @@ use crate::log::{log, tlog, dlog};
 
 pub fn start_mining_server(chain_tx: mpsc::Sender<[u8; 4]>, diff: u8) {
 
-    log(format!("Starting {} miner worker thread(s).", MINER_PROCESS));
+    log(format!("Mining Server starting {} worker thread(s).", MINER_PROCESS));
 
     let (worker_tx, worker_rx) = mpsc::channel();
     let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
