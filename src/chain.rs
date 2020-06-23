@@ -1,22 +1,24 @@
 use crate::env;
 use crate::block_struct::Block;
-use crate::tx_struct::Tx;
+use crate::tx_struct::{Tx, DataTx, FinancialTx, TxType};
 use crate::util;
 use crate::miner::{start_mining_server};
 use crate::env::{DEBUG};
 use crate::log::{log, tlog, dlog};
+use crate::wallet_struct::Wallet;
 use std::thread;
 use std::sync::mpsc;
 use std::net::SocketAddr;
 
-
-struct State<'a> {
+// N.B. The lifetime of the state is equal to the shortest lifetime
+// of either the previous_block, or tx in stored_txs.
+struct State<'a, 'b> {
     previous_block: Block<'a>,
     height: [u8; 4],
     difficulty: u8,
     mining_service: (mpsc::Sender<[u8; 4]>, mpsc::Receiver<[u8; 4]>),
     network_service: (mpsc::Sender<[u8; 4]>, mpsc::Receiver<[u8; 4]>),
-    stored_txs: Vec<&'a Tx>
+    stored_txs: Vec<&'b Tx>
 }
 
 pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, spawn_chain_flag: bool) {
@@ -30,11 +32,12 @@ pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, 
         format!("Hosting REST API: {}", rest_api_flag)
     ]);
 
-    let (tx, rx) = mpsc::channel();
-    start_mining_server(tx, 18);
+    // Load services.
+    let (server_tx, server_rx) = mpsc::channel();
+    start_mining_server(server_tx.clone(), 18);
+    // start_net_interface(server_tx.clone());
+    // start_rest_server(server_tx.clone());
+    // start_fork_recovery(server_tx.clone());
 
-    loop {
-
-
-    }
+    loop {}
 }

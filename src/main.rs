@@ -12,6 +12,8 @@ mod miner;
 mod log;
 
 use lazy_static::lazy_static;
+use crate::tx_struct::{Tx, DataTx, TxType};
+use crate::wallet_struct::Wallet;
 
 lazy_static! {
     static ref LOGFILE: String = format!("{}-logfile.txt", util::get_datetime());
@@ -20,11 +22,13 @@ lazy_static! {
 fn main() {
     // Node entrypoint
     // TODO: Add command line arg control
-    let mine = true;
-    let txs  = false;
-    let rest = false;
-    let spawn = true;
+    let mine_chain = true;
+    let accept_txs  = false;
+    let host_rest = false;
+    let spawn_chain = true;
 
     // Start node service
-    chain::start_server(mine, txs, rest, spawn);
+    chain::start_server(mine_chain, accept_txs, host_rest, spawn_chain);
+
+    loop { }
 }

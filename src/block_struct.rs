@@ -9,18 +9,49 @@ use byteorder::ByteOrder;
  * Note: Txs field has to be 'boxed' as Tx type size unknown at compile time.
  */
 pub struct Block<'a> {
-    nonce: [u8; 16],
-    previous_hash: [u8; 32],
-    version: u8,
-    difficulty: u8,
-    height: [u8; 4],
-    timestamp: [u8; 8],
-    miner: Vec<u8>,
-    reward_amount: [u8; 4],
-    tx_count: u8,
-    // tx_merkle: [u8; 32],
-    txs: Vec<&'a Tx>,
-    hash: [u8; 32]
+    pub nonce: [u8; 16],
+    pub previous_hash: [u8; 32],
+    pub version: u8,
+    pub difficulty: u8,
+    pub height: [u8; 4],
+    pub timestamp: [u8; 8],
+    pub miner: Vec<u8>,
+    pub reward_amount: [u8; 4],
+    pub tx_count: u8,
+    // pub tx_merkle: [u8; 32],
+    pub txs: Vec<&'a Tx>,
+    pub hash: [u8; 32]
+}
+
+impl ToString for Block<'_> {
+    fn to_string(&self) -> String {
+        return format!("
+            Block {{
+                \tnonce: {:?},
+                \tprevious_hash (hex): {:x?},
+                \tversion: {},
+                \tdifficulty: {},
+                \theight: {:?},
+                \ttimestamp: {:?},
+                \tminer (hex): {:x?},
+                \treward_amount: {:?},
+                \ttx_count: {:?},
+                \ttxs: [..],
+                \thash (hex): {:x?},
+            }}",
+            self.nonce,
+            self.previous_hash,
+            self.version,
+            self.difficulty,
+            self.height,
+            self.timestamp,
+            self.miner,
+            self.reward_amount,
+            self.tx_count,
+            // self.txs,
+            self.hash
+        );
+    }
 }
 
 impl Block<'_> {

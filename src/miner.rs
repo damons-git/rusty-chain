@@ -9,29 +9,31 @@ use crate::log::{log, tlog, dlog};
 
 pub fn start_mining_server(chain_tx: mpsc::Sender<[u8; 4]>, diff: u8) {
 
-    log(format!("Mining Server starting {} worker thread(s).", MINER_PROCESS));
+    thread::spawn(move || {
+        log("Starting mining service..".to_string());
+        let (worker_tx, worker_rx) = mpsc::channel();
+        let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
+        let data = vec![99, 55, 11];
+        let diff_mask = parse_diff_to_mask(diff);
 
-    let (worker_tx, worker_rx) = mpsc::channel();
-    let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
-    let data = vec![99, 55, 11];
-    let diff_mask = parse_diff_to_mask(diff);
-
-    for multiplier in 0..MINER_PROCESS {
-        mining_worker(worker_tx.clone(), nonce_range * multiplier as u128, data.clone(), diff_mask.clone());
-    }
-
-    loop {
-        let available: bool = worker_rx.try_recv().is_err();
-        if available {
-            let (nonce, hash) = worker_rx.recv().unwrap();
-            dlog(module_path!(), "Valid hash found", &[
-                format!("Hash (hex): {:x?}", hash),
-                format!("Nonce: {}", nonce),
-                format!("Difficulty: {}", diff),
-                format!("Difficulty Mask (hex): {:x?}", diff_mask)
-            ]);
+        log(format!("Mining server spawning {} worker thread(s).", MINER_PROCESS));
+        for multiplier in 0..MINER_PROCESS {
+            mining_worker(worker_tx.clone(), nonce_range * multiplier as u128, data.clone(), diff_mask.clone());
         }
-    }
+
+        loop {
+            let available: bool = worker_rx.try_recv().is_err();
+            if available {
+                let (nonce, hash) = worker_rx.recv().unwrap();
+                dlog(module_path!(), "Valid hash found", &[
+                    format!("Hash (hex): {:x?}", hash),
+                    format!("Nonce: {}", nonce),
+                    format!("Difficulty: {}", diff),
+                    format!("Difficulty Mask (hex): {:x?}", diff_mask)
+                ]);
+            }
+        }
+    });
 }
 
 // A simple miner worker process.

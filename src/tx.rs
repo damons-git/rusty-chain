@@ -15,7 +15,7 @@ pub fn generate_rand_data_tx() -> DataTx {
     let wallet = Wallet::new();
     let version = 0x01;
     let tx_type = TxType::Data;
-    let owner = wallet.public_key;
+    let owner = wallet.public_key.clone();
     let data: Vec<u8> = rand::thread_rng()
         .sample_iter(&Alphanumeric)
         .take(10)
@@ -37,6 +37,7 @@ pub fn generate_rand_data_tx() -> DataTx {
         signature: sig
     };
     tx.generate_hash();
+    tx.generate_signature(&wallet);
 
     if DEBUG { println!("> Generated Random Data Tx, data: {:x?}", tx.data)};
 
