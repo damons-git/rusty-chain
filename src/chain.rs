@@ -34,7 +34,7 @@ pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, 
 
     // Load services.
     let (server_tx, server_rx) = mpsc::channel();
-    start_mining_server(server_tx.clone(), 18);
+    start_mining_server(server_tx.clone(), 20);
     // start_net_interface(server_tx.clone());
     // start_rest_server(server_tx.clone());
     // start_fork_recovery(server_tx.clone());
