@@ -34,12 +34,15 @@ pub fn start_mining_server(chain_tx: mpsc::Sender<[u8; 4]>, diff: u8) {
             let available: bool = worker_rx.try_recv().is_err();
             if available {
                 let (nonce, hash) = worker_rx.recv().unwrap();
+                log("Mining server found valid hash for block.".to_string());
                 dlog(module_path!(), "Valid hash found", &[
                     format!("Hash (hex): {:x?}", hash),
                     format!("Nonce: {}", nonce),
                     format!("Difficulty: {}", diff),
                     format!("Difficulty Mask (hex): {:x?}", diff_mask)
                 ]);
+
+                dlog(module_path!(), &format!("Killed {} active mining worker process", miners.len()), &[]);
                 for tx in miners.iter() {
                     tx.send(MinerCommand::KILL).unwrap();
                 }
@@ -86,7 +89,6 @@ fn mining_worker(tx: mpsc::Sender<(u128, [u8; 32])>, rx: mpsc::Receiver<MinerCom
             }
 
         }
-        println!("Mining worker process killed.");
     });
 }
 
