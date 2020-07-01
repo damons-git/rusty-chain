@@ -55,10 +55,12 @@ pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, 
         let gen_bin = genesis.to_hashable_bin();
         let (tx, rx) = mpsc::channel();
         start_mining_server(tx.clone(), 20, gen_bin.clone());
-        let (nonce, hashv) = rx.recv().unwrap();
+        let (nonce, hash) = rx.recv().unwrap();
         genesis.nonce = nonce;
-        genesis.hash = hashv;
-        println!("{}", genesis.to_string());
+        genesis.hash = hash;
+
+        log(format!("Genesis Mined, Block Hash: {:x?}.", genesis.hash));
+        dlog(module_path!(), &"Created and mined genesis block", &[ genesis.to_string() ]);
     }
 
     // Load services.

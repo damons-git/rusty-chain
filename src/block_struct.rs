@@ -26,20 +26,19 @@ pub struct Block<'a> {
 
 impl ToString for Block<'_> {
     fn to_string(&self) -> String {
-        return format!("
-            Block {{
-                \tnonce: {:?},
-                \tprevious_hash (hex): {:x?},
-                \tversion: {},
-                \tdifficulty: {},
-                \theight: {:?},
-                \ttimestamp: {:?},
-                \tminer (hex): {:x?},
-                \treward_amount: {:?},
-                \ttx_count: {:?},
-                \ttxs: [..],
-                \thash (hex): {:x?},
-            }}",
+        return format!("Block {{
+            nonce: {:?},
+            previous_hash (hex): {:x?},
+            version: {},
+            difficulty: {},
+            height: {:?},
+            timestamp: {:?},
+            miner (hex): {:x?},
+            reward_amount: {:?},
+            tx_count: {:?},
+            txs: [..],
+            hash (hex): {:x?},
+        }}",
             self.nonce,
             self.previous_hash,
             self.version,
