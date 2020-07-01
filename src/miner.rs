@@ -11,10 +11,10 @@ use crate::log::{log, tlog, dlog};
 // Commands accepted by mining workers
 #[derive(Debug)]
 pub enum MinerCommand {
-    KILL(),
+    KILL,
     UPDATE_DIFF(u8),
     UPDATE_DATA(Vec<u8>),
-    START()
+    START
 }
 
 // Commands accepted by mining workers
@@ -37,7 +37,6 @@ struct State {
 
 // Start mining server.
 // This process manages the set of mining workers trying to solve the hashing puzzle.
-// The server state stores the the puzzle data, difficulty, parent process channel, and worker channels.
 pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, miner_rx: mpsc::Receiver<MinerCommand>) {
     thread::spawn(move || {
 
@@ -53,14 +52,14 @@ pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, miner_r
             master_rx: rx
         };
 
-        // Main loop
-        // Proccesses received commands from parent process.
+        // Handle message from parent process.
+        // Processes values from MinerCommand enum.
         loop {
             let recv = miner_rx.recv_timeout(Duration::new(0, 0));
             match recv {
                 Ok(cmnd) => {
                     match cmnd {
-                        MinerCommand::START() => {
+                        MinerCommand::START => {
                             log(format!("Mining server spawning {} worker thread(s).", MINER_PROCESS));
                             let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
                             for multiplier in 0..MINER_PROCESS {
@@ -76,7 +75,7 @@ pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, miner_r
                         MinerCommand::UPDATE_DATA(bin) => {
                             state.data = bin
                         }
-                        MinerCommand::KILL() => {
+                        MinerCommand::KILL => {
                             break
                         }
                     }
@@ -89,7 +88,8 @@ pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, miner_r
                 }
             }
 
-            // Handle response from worker
+            // Handle message from worker.
+            // Processes valid nonce message from worker threads.
             let recv = state.master_rx.recv_timeout(Duration::new(0, 0));
             match recv {
                 Ok(res) => {

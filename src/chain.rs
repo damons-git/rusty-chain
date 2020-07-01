@@ -61,7 +61,7 @@ pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, 
         start_mining_server(chain_tx.clone(), miner_rx);
         miner_tx.send(MinerCommand::UPDATE_DIFF(diff)).unwrap();
         miner_tx.send(MinerCommand::UPDATE_DATA(gen_bin)).unwrap();
-        miner_tx.send(MinerCommand::START()).unwrap();
+        miner_tx.send(MinerCommand::START).unwrap();
 
         // Once valid hash found, save result and kill miner.
         let (nonce, hash) = chain_rx.recv().unwrap();
@@ -69,7 +69,7 @@ pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, 
         genesis.hash = hash;
         log(format!("Genesis Mined, Block Hash: {:x?}.", genesis.hash));
         log(format!("Killing genesis block mining server."));
-        miner_tx.send(MinerCommand::KILL()).unwrap();
+        miner_tx.send(MinerCommand::KILL).unwrap();
 
         dlog(module_path!(), &"Created and mined genesis block", &[ genesis.to_string() ]);
     }
