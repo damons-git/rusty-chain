@@ -11,9 +11,10 @@ use crate::log::{log, tlog, dlog};
 // Commands accepted by mining workers
 #[derive(Debug)]
 pub enum MinerCommand {
-    KILL,
-    UPDATE_DIFF,
-    UPDATE_DATA
+    KILL(),
+    UPDATE_DIFF(u8),
+    UPDATE_DATA(Vec<u8>),
+    START()
 }
 
 // Commands accepted by mining workers
@@ -28,30 +29,68 @@ struct State {
     data: Vec<u8>,
     chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>,
     workers: Vec<mpsc::Sender<WorkerCommand>>,
+    diff_mask: Vec<u8>,
+    master_tx: mpsc::Sender<(u128, [u8; 32])>,
+    master_rx: mpsc::Receiver<(u128, [u8; 32])>
 }
 
 
 // Start mining server.
 // This process manages the set of mining workers trying to solve the hashing puzzle.
 // The server state stores the the puzzle data, difficulty, parent process channel, and worker channels.
-pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, diff: u8, data: Vec<u8>) {
+pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, miner_rx: mpsc::Receiver<MinerCommand>) {
     thread::spawn(move || {
 
-        log("Starting mining service..".to_string());
-        let mut miners: Vec<mpsc::Sender<WorkerCommand>> = vec![];
-        let (worker_tx, worker_rx) = mpsc::channel();
-        let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
-        let diff_mask = parse_diff_to_mask(diff);
+        // Process state.
+        let (tx, rx) = mpsc::channel();
+        let mut state = State {
+            diff: 0,
+            data: vec![],
+            chain_tx: chain_tx,
+            workers: vec![],
+            diff_mask: vec![],
+            master_tx: tx,
+            master_rx: rx
+        };
 
-        log(format!("Mining server spawning {} worker thread(s).", MINER_PROCESS));
-        for multiplier in 0..MINER_PROCESS {
-            let (thread_tx, thread_rx) = mpsc::channel();
-            mining_worker(worker_tx.clone(), thread_rx, nonce_range * multiplier as u128, data.clone(), diff_mask.clone());
-            miners.push(thread_tx.clone());
-        }
-
+        // Main loop
+        // Proccesses received commands from parent process.
         loop {
-            let recv = worker_rx.recv_timeout(Duration::new(0, 0));
+            let recv = miner_rx.recv_timeout(Duration::new(0, 0));
+            match recv {
+                Ok(cmnd) => {
+                    match cmnd {
+                        MinerCommand::START() => {
+                            log(format!("Mining server spawning {} worker thread(s).", MINER_PROCESS));
+                            let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
+                            for multiplier in 0..MINER_PROCESS {
+                                let (thread_tx, thread_rx) = mpsc::channel();
+                                mining_worker(state.master_tx.clone(), thread_rx, nonce_range * multiplier as u128, state.data.clone(), state.diff_mask.clone());
+                                state.workers.push(thread_tx);
+                            }
+                        },
+                        MinerCommand::UPDATE_DIFF(val) => {
+                            state.diff = val;
+                            state.diff_mask = parse_diff_to_mask(val)
+                        },
+                        MinerCommand::UPDATE_DATA(bin) => {
+                            state.data = bin
+                        }
+                        MinerCommand::KILL() => {
+                            break
+                        }
+                    }
+                },
+                Err(e) => {
+                    match e {
+                        RecvTimeoutError::Timeout => (),
+                        RecvTimeoutError::Disconnected => break
+                    }
+                }
+            }
+
+            // Handle response from worker
+            let recv = state.master_rx.recv_timeout(Duration::new(0, 0));
             match recv {
                 Ok(res) => {
                     let (nonce, hash) = res;
@@ -59,18 +98,18 @@ pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, diff: u
                     dlog(module_path!(), "Valid hash found", &[
                         format!("Hash (hex): {:x?}", hash),
                         format!("Nonce: {}", nonce),
-                        format!("Difficulty: {}", diff),
-                        format!("Difficulty Mask (hex): {:x?}", diff_mask)
+                        format!("Difficulty: {}", state.diff),
+                        format!("Difficulty Mask (hex): {:x?}", state.diff_mask)
                     ]);
 
-                    dlog(module_path!(), &format!("Killed {} active mining worker process", miners.len()), &[]);
-                    for tx in miners.iter() {
+                    dlog(module_path!(), &format!("Killed {} active mining worker process", state.workers.len()), &[]);
+                    for tx in state.workers.iter() {
                         tx.send(WorkerCommand::KILL).unwrap();
                     }
 
                     let mut buf = [0; 16];
                     byteorder::BigEndian::write_u128(&mut buf, nonce);
-                    chain_tx.send((buf, hash)).unwrap();
+                    state.chain_tx.send((buf, hash)).unwrap();
                 },
                 Err(e) => {
                     match e {

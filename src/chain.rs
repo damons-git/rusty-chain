@@ -2,7 +2,7 @@ use crate::env;
 use crate::block_struct::Block;
 use crate::tx_struct::{Tx, DataTx, FinancialTx, TxType};
 use crate::util::{parse_net_address, get_timestamp, hash};
-use crate::miner::{start_mining_server};
+use crate::miner::{start_mining_server, MinerCommand};
 use crate::env::{DEBUG, GENESIS_DIFF};
 use crate::log::{log, tlog, dlog};
 use crate::wallet_struct::Wallet;
@@ -52,22 +52,32 @@ pub fn start_server(mine_flag: bool, accept_tx_flag: bool, rest_api_flag: bool, 
             hash: [0; 32]
         };
 
+        // Instantiate mining server, set data to be mined, and start mining.
+        log(format!("Starting mining server for genesis block creation."));
         let gen_bin = genesis.to_hashable_bin();
-        let (tx, rx) = mpsc::channel();
-        start_mining_server(tx.clone(), 20, gen_bin.clone());
-        let (nonce, hash) = rx.recv().unwrap();
+        let diff = genesis.difficulty;
+        let (chain_tx, chain_rx) = mpsc::channel();
+        let (miner_tx, miner_rx) = mpsc::channel();
+        start_mining_server(chain_tx.clone(), miner_rx);
+        miner_tx.send(MinerCommand::UPDATE_DIFF(diff)).unwrap();
+        miner_tx.send(MinerCommand::UPDATE_DATA(gen_bin)).unwrap();
+        miner_tx.send(MinerCommand::START()).unwrap();
+
+        // Once valid hash found, save result and kill miner.
+        let (nonce, hash) = chain_rx.recv().unwrap();
         genesis.nonce = nonce;
         genesis.hash = hash;
-
         log(format!("Genesis Mined, Block Hash: {:x?}.", genesis.hash));
+        log(format!("Killing genesis block mining server."));
+        miner_tx.send(MinerCommand::KILL()).unwrap();
+
         dlog(module_path!(), &"Created and mined genesis block", &[ genesis.to_string() ]);
     }
 
     // Load services.
-
     // start_net_interface(server_tx.clone());
     // start_rest_server(server_tx.clone());
     // start_fork_recovery(server_tx.clone());
 
-    loop {}
+    // loop {}
 }
