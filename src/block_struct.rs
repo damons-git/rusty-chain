@@ -1,5 +1,6 @@
 extern crate byteorder;
 
+use crate::util::hash;
 use crate::tx_struct::{Tx, DataTx, FinancialTx};
 use byteorder::ByteOrder;
 
@@ -57,7 +58,7 @@ impl ToString for Block<'_> {
 impl Block<'_> {
     // Convert block fields into a binary used for generating hash.
     // Excludes nonce as used as Proof-of-work to meet set difficulty.
-    fn to_hashable_bin(&self) -> Vec<u8> {
+    pub fn to_hashable_bin(&self) -> Vec<u8> {
 
         // Generate binary of all txs.
         // TODO: Use merkle tree for static tx hash size.
@@ -78,6 +79,13 @@ impl Block<'_> {
         binary.extend(&txs_bin.clone());
 
         return binary;
+    }
+
+    // Generate and set hash of block.
+    pub fn generate_hash(&mut self) -> () {
+        let bin: Vec<u8> = self.to_hashable_bin();
+        let hash: [u8; 32] = hash(&bin);
+        self.hash = hash;
     }
 }
 

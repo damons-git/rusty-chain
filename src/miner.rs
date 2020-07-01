@@ -3,24 +3,32 @@ use std::sync::mpsc;
 use std::sync::mpsc::{RecvTimeoutError};
 use std::time::Duration;
 use std::u128;
+use byteorder::ByteOrder;
 use crate::env::{MINER_PROCESS, DEBUG};
 use crate::util::{hash};
 use crate::log::{log, tlog, dlog};
 
 // Commands accepted by mining workers
 #[derive(Debug)]
-enum MinerCommand {
+pub enum MinerCommand {
+    KILL,
+    UPDATE_DIFF,
+    UPDATE_DATA
+}
+
+// Commands accepted by mining workers
+#[derive(Debug)]
+enum WorkerCommand {
     KILL
 }
 
-pub fn start_mining_server(chain_tx: mpsc::Sender<[u8; 4]>, diff: u8) {
-
+pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, diff: u8, data: Vec<u8>) {
     thread::spawn(move || {
+
         log("Starting mining service..".to_string());
-        let mut miners: Vec<mpsc::Sender<MinerCommand>> = vec![];
+        let mut miners: Vec<mpsc::Sender<WorkerCommand>> = vec![];
         let (worker_tx, worker_rx) = mpsc::channel();
         let nonce_range: u128 = u128::MAX / MINER_PROCESS as u128;
-        let data = vec![99, 55, 11];
         let diff_mask = parse_diff_to_mask(diff);
 
         log(format!("Mining server spawning {} worker thread(s).", MINER_PROCESS));
@@ -31,31 +39,45 @@ pub fn start_mining_server(chain_tx: mpsc::Sender<[u8; 4]>, diff: u8) {
         }
 
         loop {
-            let available: bool = worker_rx.try_recv().is_err();
-            if available {
-                let (nonce, hash) = worker_rx.recv().unwrap();
-                log("Mining server found valid hash for block.".to_string());
-                dlog(module_path!(), "Valid hash found", &[
-                    format!("Hash (hex): {:x?}", hash),
-                    format!("Nonce: {}", nonce),
-                    format!("Difficulty: {}", diff),
-                    format!("Difficulty Mask (hex): {:x?}", diff_mask)
-                ]);
+            let recv = worker_rx.recv_timeout(Duration::new(0, 0));
+            match recv {
+                Ok(res) => {
+                    let (nonce, hash) = res;
+                    log("Mining server found valid hash for block.".to_string());
+                    dlog(module_path!(), "Valid hash found", &[
+                        format!("Hash (hex): {:x?}", hash),
+                        format!("Nonce: {}", nonce),
+                        format!("Difficulty: {}", diff),
+                        format!("Difficulty Mask (hex): {:x?}", diff_mask)
+                    ]);
 
-                dlog(module_path!(), &format!("Killed {} active mining worker process", miners.len()), &[]);
-                for tx in miners.iter() {
-                    tx.send(MinerCommand::KILL).unwrap();
+                    dlog(module_path!(), &format!("Killed {} active mining worker process", miners.len()), &[]);
+                    for tx in miners.iter() {
+                        tx.send(WorkerCommand::KILL).unwrap();
+                    }
+
+                    let mut buf = [0; 16];
+                    byteorder::BigEndian::write_u128(&mut buf, nonce);
+                    chain_tx.send((buf, hash)).unwrap();
+                },
+                Err(e) => {
+                    match e {
+                        RecvTimeoutError::Timeout => (),
+                        RecvTimeoutError::Disconnected => break
+                    }
                 }
             }
         }
+
     });
 }
 
 // A simple miner worker process.
 // Takes a transmitter to talk to managing process, a nonce interval to begin at,
 // binary data to be worked on, and a difficulty level to meet.
-fn mining_worker(tx: mpsc::Sender<(u128, [u8; 32])>, rx: mpsc::Receiver<MinerCommand>, mut nonce: u128, binary: Vec<u8>, diff_mask: Vec<u8>) {
+fn mining_worker(tx: mpsc::Sender<(u128, [u8; 32])>, rx: mpsc::Receiver<WorkerCommand>, mut nonce: u128, binary: Vec<u8>, diff_mask: Vec<u8>) {
     thread::spawn(move || {
+
         loop {
             let mut data: Vec<u8> = vec![];
             data.extend_from_slice(&nonce.to_be_bytes().to_vec());
@@ -77,7 +99,7 @@ fn mining_worker(tx: mpsc::Sender<(u128, [u8; 32])>, rx: mpsc::Receiver<MinerCom
             match recv {
                 Ok(cmnd) => {
                     match cmnd {
-                        MinerCommand::KILL => break
+                        WorkerCommand::KILL => break
                     }
                 },
                 Err(e) => {
@@ -87,8 +109,8 @@ fn mining_worker(tx: mpsc::Sender<(u128, [u8; 32])>, rx: mpsc::Receiver<MinerCom
                     }
                 }
             }
-
         }
+
     });
 }
 

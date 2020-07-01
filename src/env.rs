@@ -13,11 +13,11 @@ pub const MINING_NODE: bool = true;                 // Flag to state if node sho
 pub const MINING_THREADS: u8 = 1;                   // The number of mining threads to be used
 pub const DEFAULT_PORT: u16 = 55845;                // Default port: chosen after the atomic weight of Iron (Fe) 55.845
 
-pub const GENESIS_DIFF: u8 = 10;                    // Starting difficulty for the genesis block
+pub const GENESIS_DIFF: u8 = 20;                    // Starting difficulty for the genesis block
 pub const BLOCK_TIME: u32 = 120;                    // Expected block time in seconds
 
 pub const KEY_ALGO: &str = "RSA";                   // Asymmetric encryption key protocol used for Wallets
 pub const KEY_SIZE: u32 = 2048;                     // Key-size in bits
 pub const KEY_PUB_EXP: u32 = 65537;                 // Public exponenent used for key generation
 
-pub const MINER_PROCESS: u8 = 2;                    // Number of mining threads to be used
+pub const MINER_PROCESS: u8 = 4;                    // Number of mining threads to be used
