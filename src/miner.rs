@@ -22,6 +22,18 @@ enum WorkerCommand {
     KILL
 }
 
+// Mining server state
+struct State {
+    diff: u8,
+    data: Vec<u8>,
+    chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>,
+    workers: Vec<mpsc::Sender<WorkerCommand>>,
+}
+
+
+// Start mining server.
+// This process manages the set of mining workers trying to solve the hashing puzzle.
+// The server state stores the the puzzle data, difficulty, parent process channel, and worker channels.
 pub fn start_mining_server(chain_tx: mpsc::Sender<([u8; 16], [u8; 32])>, diff: u8, data: Vec<u8>) {
     thread::spawn(move || {
 
